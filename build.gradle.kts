@@ -1,44 +1,22 @@
 plugins {
     id("java-library")
-    kotlin("jvm")
+    alias(libs.plugins.checkerframework)
 }
-
-group = "com.retrivedmods.wrelay"
-version = "1.0-SNAPSHOT"
 
 java {
     toolchain {
-        languageVersion.set(JavaLanguageVersion.of(17))
+        languageVersion.set(JavaLanguageVersion.of(8))
     }
 }
 
 dependencies {
+    // Lombok as annotation processor (avoids circular dependency)
+    compileOnly("org.projectlombok:lombok:1.18.34")
+    annotationProcessor("org.projectlombok:lombok:1.18.34")
 
-    testImplementation(libs.junit.jupiter.api)
-    testRuntimeOnly(libs.junit.jupiter.engine)
-
-    implementation(platform(libs.log4j.bom))
-    implementation(libs.log4j.api)
-    implementation(libs.log4j.core)
-    implementation(libs.jose4j)
-    implementation(libs.jackson.databind)
-    implementation(libs.kotlinx.coroutines.core)
-    
-    // Use api to expose these to the app module
-    api(libs.minecraft.auth)
-    api(project(":relay:Network:transport-raknet"))
-    api(project(":relay:Protocol:bedrock-codec"))
-    api(project(":relay:Protocol:bedrock-connection"))
-    api(project(":relay:Protocol:common"))
-    api(libs.bundles.netty)
-    
-    testImplementation(kotlin("test"))
-}
-
-tasks.test {
-    useJUnitPlatform()
-}
-
-kotlin {
-    jvmToolchain(17)
+    api(libs.netty.buffer)
+    api(platform(libs.fastutil.bom))
+    api(libs.fastutil.int.obj.maps)
+    api(libs.fastutil.obj.int.maps)
+    api(libs.math)
 }
