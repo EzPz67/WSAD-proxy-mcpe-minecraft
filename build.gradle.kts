@@ -14,9 +14,18 @@ dependencies {
     compileOnly("org.projectlombok:lombok:1.18.34")
     annotationProcessor("org.projectlombok:lombok:1.18.34")
 
-    api(libs.netty.buffer)
+    api(project(":relay:Protocol:common"))
+    api(libs.adventure.text.serializer.legacy)
+    api(libs.adventure.text.serializer.json)
     api(platform(libs.fastutil.bom))
-    api(libs.fastutil.int.obj.maps)
-    api(libs.fastutil.obj.int.maps)
-    api(libs.math)
+    api(libs.netty.buffer)
+    api(libs.fastutil.long.common)
+    api(libs.fastutil.long.obj.maps)
+    api(libs.jose4j)
+    api(libs.nbt)
+    api(libs.jackson.annotations)
+    api(libs.jackson.databind)
+
+    // Tests
+    testImplementation(libs.junit)
 }
