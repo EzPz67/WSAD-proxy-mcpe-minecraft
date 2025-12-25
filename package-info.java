@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 CloudburstMC
+ * Copyright 2022 CloudburstMC
  *
  * CloudburstMC licenses this file to you under the Apache License,
  * version 2.0 (the "License"); you may not use this file except in compliance
@@ -13,22 +13,8 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-plugins {
-    id("java-library")
-}
 
-java {
-    toolchain {
-        languageVersion.set(JavaLanguageVersion.of(8))
-    }
-}
-
-dependencies {
-    // Lombok as annotation processor (avoids circular dependency)
-    compileOnly("org.projectlombok:lombok:1.18.34")
-    annotationProcessor("org.projectlombok:lombok:1.18.34")
-    
-    api(libs.bundles.netty)
-    api(libs.expiringmap)
-    api(libs.network.common)
-}
+/**
+ * Channel related classes
+ */
+package org.cloudburstmc.netty.channel.proxy;

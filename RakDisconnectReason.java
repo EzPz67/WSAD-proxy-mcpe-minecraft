@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 CloudburstMC
+ * Copyright 2022 CloudburstMC
  *
  * CloudburstMC licenses this file to you under the Apache License,
  * version 2.0 (the "License"); you may not use this file except in compliance
@@ -13,22 +13,19 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-plugins {
-    id("java-library")
-}
 
-java {
-    toolchain {
-        languageVersion.set(JavaLanguageVersion.of(8))
-    }
-}
+package org.cloudburstmc.netty.channel.raknet;
 
-dependencies {
-    // Lombok as annotation processor (avoids circular dependency)
-    compileOnly("org.projectlombok:lombok:1.18.34")
-    annotationProcessor("org.projectlombok:lombok:1.18.34")
-    
-    api(libs.bundles.netty)
-    api(libs.expiringmap)
-    api(libs.network.common)
+public enum RakDisconnectReason {
+    CLOSED_BY_REMOTE_PEER,
+    SHUTTING_DOWN,
+    DISCONNECTED,
+    TIMED_OUT,
+    CONNECTION_REQUEST_FAILED,
+    ALREADY_CONNECTED,
+    NO_FREE_INCOMING_CONNECTIONS,
+    INCOMPATIBLE_PROTOCOL_VERSION,
+    IP_RECENTLY_CONNECTED,
+    BAD_PACKET,
+    QUEUE_TOO_LONG
 }
