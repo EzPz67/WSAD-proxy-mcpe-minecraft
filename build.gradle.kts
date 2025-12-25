@@ -1,34 +1,122 @@
-/*
- * Copyright 2023 CloudburstMC
- *
- * CloudburstMC licenses this file to you under the Apache License,
- * version 2.0 (the "License"); you may not use this file except in compliance
- * with the License. You may obtain a copy of the License at:
- *
- *   https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
- */
+import org.jetbrains.kotlin.compose.compiler.gradle.ComposeFeatureFlag
+
 plugins {
-    id("java-library")
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.lombok)
+    kotlin("plugin.serialization") version libs.versions.kotlin
 }
 
-java {
-    toolchain {
-        languageVersion.set(JavaLanguageVersion.of(8))
+android {
+    namespace = "com.retrivedmods.wclient"
+    compileSdk = 36
+
+    defaultConfig {
+        applicationId = "com.retrivedmods.wclient"
+        minSdk = 28
+        //noinspection OldTargetApi,EditedTargetSdkVersion
+        targetSdk = 35
+        versionCode = 1
+        versionName = "16.0"
+
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        ndk {
+            //noinspection ChromeOsAbiSupport
+            abiFilters += setOf("arm64-v8a", "armeabi-v7a")
+        }
+    }
+    buildFeatures {
+        buildConfig = true
+    }
+    signingConfigs {
+        create("shared") {
+            enableV1Signing = true
+            enableV2Signing = true
+            enableV3Signing = true
+
+            storeFile = rootDir.resolve("buildKey.jks")
+            keyAlias = "UntrustedKey"
+            storePassword = "123456"
+            keyPassword = "123456"
+        }
+    }
+    packaging {
+        jniLibs.useLegacyPackaging = true
+        resources.excludes.addAll(
+            setOf(
+                "DebugProbesKt.bin"
+            )
+        )
+        resources.pickFirsts.addAll(
+            setOf(
+                "META-INF/INDEX.LIST",
+                "META-INF/io.netty.versions.properties",
+                "META-INF/DEPENDENCIES"
+            )
+        )
+    }
+    buildTypes {
+        debug {
+            isMinifyEnabled = false
+            isDebuggable = true
+            signingConfig = signingConfigs.getByName("shared")
+        }
+        release {
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+            isDebuggable = false
+            signingConfig = signingConfigs.getByName("shared")
+        }
+    }
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+    kotlinOptions {
+        jvmTarget = "17"
+    }
+    composeCompiler {
+        includeTraceMarkers = false
+        includeSourceInformation = false
+        generateFunctionKeyMetaClasses = false
+        featureFlags = setOf(
+            ComposeFeatureFlag.OptimizeNonSkippingGroups,
+            ComposeFeatureFlag.PausableComposition
+        )
     }
 }
 
 dependencies {
-    // Lombok as annotation processor (avoids circular dependency)
-    compileOnly("org.projectlombok:lombok:1.18.34")
-    annotationProcessor("org.projectlombok:lombok:1.18.34")
-    
-    api(libs.bundles.netty)
-    api(libs.expiringmap)
-    api(libs.network.common)
+    implementation(project(":relay"))
+    implementation(libs.gson)
+    implementation(libs.kotlinx.serialization.json.jvm)
+    implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.activity.compose)
+    implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.androidx.ui)
+    implementation(libs.androidx.ui.graphics)
+    implementation(libs.androidx.ui.tooling.preview)
+    implementation(libs.androidx.material3)
+    implementation(libs.androidx.navigation.compose)
+    implementation(libs.androidx.material.icons.extended)
+    testImplementation(libs.junit)
+    androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation(libs.androidx.espresso.core)
+    androidTestImplementation(platform(libs.androidx.compose.bom))
+    androidTestImplementation(libs.androidx.ui.test.junit4)
+    debugImplementation(libs.androidx.ui.tooling)
+    debugImplementation(libs.androidx.ui.test.manifest)
+
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+    implementation("com.squareup.okhttp3:okhttp:4.11.0")
+    implementation("androidx.browser:browser:1.6.0")
 }

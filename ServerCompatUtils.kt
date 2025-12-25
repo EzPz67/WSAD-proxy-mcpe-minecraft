@@ -1,8 +1,5 @@
-package com.retrivedmods.wrelay.util
+package com.retrivedmods.wclient.util
 
-import com.retrivedmods.wrelay.address.WAddress
-import com.retrivedmods.wrelay.config.EnhancedServerConfig
-import java.net.InetAddress
 import java.util.regex.Pattern
 
 object ServerCompatUtils {
@@ -11,23 +8,15 @@ object ServerCompatUtils {
         Pattern.compile(".*\\.aternos\\.me$", Pattern.CASE_INSENSITIVE),
         Pattern.compile(".*\\.aternos\\.org$", Pattern.CASE_INSENSITIVE),
         Pattern.compile(".*\\.aternos\\.net$", Pattern.CASE_INSENSITIVE),
-        Pattern.compile(".*aternos.*", Pattern.CASE_INSENSITIVE),
-        Pattern.compile(".*\\.nethergames\\.org$", Pattern.CASE_INSENSITIVE),
-        Pattern.compile(".*nethergames.*", Pattern.CASE_INSENSITIVE),
-        Pattern.compile(".*\\.cubecraft\\.net$", Pattern.CASE_INSENSITIVE),
-        Pattern.compile(".*cubecraft.*", Pattern.CASE_INSENSITIVE)
+        Pattern.compile(".*aternos.*", Pattern.CASE_INSENSITIVE)
     )
-    
+
     private val KNOWN_PROTECTED_IPS = setOf(
         "116.202.224.146",
         "135.181.42.192",
         "168.119.61.4",
         "95.217.163.246"
     )
-
-    fun isProtectedServer(address: WAddress): Boolean {
-        return isProtectedHostname(address.hostName) || isProtectedIP(address.hostName)
-    }
 
     fun isProtectedHostname(hostname: String): Boolean {
         return PROTECTED_SERVER_PATTERNS.any { pattern ->
@@ -37,15 +26,12 @@ object ServerCompatUtils {
 
     fun isProtectedIP(hostname: String): Boolean {
         try {
-            val address = InetAddress.getByName(hostname)
-            val ip = address.hostAddress
-
-            if (KNOWN_PROTECTED_IPS.contains(ip)) {
+            if (KNOWN_PROTECTED_IPS.contains(hostname)) {
                 return true
             }
 
-            return isInProtectedIPRange(ip)
-            
+            return isInProtectedIPRange(hostname)
+
         } catch (e: Exception) {
             return false
         }
@@ -54,11 +40,10 @@ object ServerCompatUtils {
     private fun isInProtectedIPRange(ip: String): Boolean {
         val parts = ip.split(".")
         if (parts.size != 4) return false
-        
+
         try {
             val first = parts[0].toInt()
             val second = parts[1].toInt()
-            
 
             return when (first) {
                 116 -> second in 202..203
@@ -72,36 +57,24 @@ object ServerCompatUtils {
         }
     }
 
-    fun getRecommendedConfig(address: WAddress): EnhancedServerConfig {
-        if (!isProtectedServer(address)) {
-            return EnhancedServerConfig.FAST
-        }
-
-        val hostname = address.hostName.lowercase()
-        
-        return when {
-            hostname.contains("nethergames") -> EnhancedServerConfig.AGGRESSIVE
-            hostname.contains("cubecraft") -> EnhancedServerConfig.AGGRESSIVE
-            hostname.matches(Regex(".*\\d+\\.aternos\\.me")) -> EnhancedServerConfig.DEFAULT
-            hostname.contains("aternos.me") && !hostname.matches(Regex(".*\\d+\\.aternos\\.me")) -> EnhancedServerConfig.FAST
-            else -> EnhancedServerConfig.AGGRESSIVE
-        }
+    fun isProtectedServer(hostname: String): Boolean {
+        return isProtectedHostname(hostname) || isProtectedIP(hostname)
     }
 
     fun extractServerInfo(hostname: String): ProtectedServerInfo? {
         if (!isProtectedHostname(hostname)) {
             return null
         }
-        
+
         val lowerHostname = hostname.lowercase()
 
         val serverIdPattern = Pattern.compile("(\\w+)\\.aternos\\.(me|org|net)")
         val matcher = serverIdPattern.matcher(lowerHostname)
-        
+
         if (matcher.find()) {
-            val serverId = matcher.group(1)
-            val domain = matcher.group(2)
-            
+            val serverId = matcher.group(1) ?: return null
+            val domain = matcher.group(2) ?: return null
+
             return ProtectedServerInfo(
                 serverId = serverId,
                 domain = domain,
@@ -109,31 +82,74 @@ object ServerCompatUtils {
                 fullHostname = hostname
             )
         }
-        
+
         return null
     }
 
-    fun getConnectionTips(address: WAddress): List<String> {
-        if (!isProtectedServer(address)) {
+    fun getRecommendedConfigType(hostname: String): ServerConfigType {
+        if (!isProtectedServer(hostname)) {
+            return ServerConfigType.STANDARD
+        }
+
+        val lowerHostname = hostname.lowercase()
+
+        return when {
+            lowerHostname.matches(Regex("\\d+\\.aternos\\.me")) -> ServerConfigType.DEFAULT
+
+            lowerHostname.contains("aternos.me") && !lowerHostname.matches(Regex(".*\\d+\\.aternos\\.me")) -> ServerConfigType.FAST
+
+            else -> ServerConfigType.AGGRESSIVE
+        }
+    }
+
+    fun getConnectionTips(hostname: String): List<String> {
+        if (!isProtectedServer(hostname)) {
             return emptyList()
         }
-        
+
         val tips = mutableListOf<String>()
-        
-        tips.add("Protected server detected - using optimized connection settings")
-        tips.add("Connection may take longer due to DDoS protection")
-        tips.add("Multiple retry attempts will be made with exponential backoff")
-        
-        val serverInfo = extractServerInfo(address.hostName)
+
+        tips.add("🎯 Protected server detected - using optimized connection settings")
+        tips.add("⏱️ Connection may take longer due to DDoS protection")
+        tips.add("🔄 Multiple retry attempts will be made with exponential backoff")
+        tips.add("🛡️ Enhanced connection stability for protected infrastructure")
+
+        val serverInfo = extractServerInfo(hostname)
         if (serverInfo != null) {
             if (serverInfo.isNumericId) {
-                tips.add("Numeric server ID detected - using standard configuration")
+                tips.add("🔢 Numeric server ID detected - using standard configuration")
             } else {
-                tips.add("Custom server name detected - may have better stability")
+                tips.add("📝 Custom server name detected - may have better stability")
             }
         }
-        
+
         return tips
+    }
+
+    fun getTroubleshootingTips(): List<String> {
+        return listOf(
+            "🔍 Make sure your server is online in the dashboard",
+            "⏰ Wait 2-3 minutes between connection attempts",
+            "🔄 Try restarting your server if connection fails repeatedly",
+            "🌐 Check if other players can connect to rule out server issues",
+            "📱 Ensure your device has a stable internet connection",
+            "🛡️ Server has DDoS protection that may temporarily block connections"
+        )
+    }
+
+    fun getStatusMessage(configType: ServerConfigType): String {
+        return when (configType) {
+            ServerConfigType.FAST -> "⚡ Using Fast configuration for stable server"
+            ServerConfigType.DEFAULT -> "🔧 Using Default configuration for standard server"
+            ServerConfigType.AGGRESSIVE -> "🔥 Using Aggressive configuration for problematic server"
+            ServerConfigType.STANDARD -> "📡 Using standard configuration"
+        }
+    }
+
+    fun looksLikeProtectedServer(hostname: String): Boolean {
+        val lower = hostname.lowercase()
+        return lower.contains("aternos") ||
+                lower.matches(Regex("\\w+\\.\\w+\\.\\w+")) && lower.length > 10
     }
 
     data class ProtectedServerInfo(
@@ -141,5 +157,51 @@ object ServerCompatUtils {
         val domain: String,
         val isNumericId: Boolean,
         val fullHostname: String
+    )
+
+    enum class ServerConfigType {
+        FAST,
+        DEFAULT,
+        AGGRESSIVE,
+        STANDARD
+    }
+
+    fun getConfigDescription(configType: ServerConfigType): String {
+        return when (configType) {
+            ServerConfigType.FAST -> "3 retry attempts, 1 second delay - for stable servers"
+            ServerConfigType.DEFAULT -> "5 retry attempts, 2 second delay - recommended for most servers"
+            ServerConfigType.AGGRESSIVE -> "8 retry attempts, 5 second delay - for problematic servers"
+            ServerConfigType.STANDARD -> "Standard configuration for regular servers"
+        }
+    }
+
+    fun getPopularProtectedServers(): List<PopularProtectedServer> {
+        return listOf(
+            PopularProtectedServer(
+                name = "Example Server 1",
+                hostname = "server123.aternos.me",
+                port = 19132,
+                description = "Example protected server with numeric ID"
+            ),
+            PopularProtectedServer(
+                name = "Example Server 2",
+                hostname = "myserver.aternos.me",
+                port = 19132,
+                description = "Example protected server with custom name"
+            ),
+            PopularProtectedServer(
+                name = "Custom Port Server",
+                hostname = "example.aternos.me",
+                port = 25565,
+                description = "Example server with custom port"
+            )
+        )
+    }
+
+    data class PopularProtectedServer(
+        val name: String,
+        val hostname: String,
+        val port: Int,
+        val description: String
     )
 }
